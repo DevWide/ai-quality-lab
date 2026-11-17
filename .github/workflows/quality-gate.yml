@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   unit:
@@ -16,6 +17,8 @@ jobs:
 
   llm-evals:
     needs: unit
+    # Paid evals: run on PRs and manual runs only, not on every push to main.
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

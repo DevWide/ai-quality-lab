@@ -1,5 +1,7 @@
 # AI Quality Lab — testing a RAG chatbot like production software
 
+[![quality-gate](https://github.com/DevWide/ai-quality-lab/actions/workflows/quality-gate.yml/badge.svg)](https://github.com/DevWide/ai-quality-lab/actions/workflows/quality-gate.yml)
+
 A small Retrieval-Augmented Generation (RAG) support assistant for a fictional company, **Orbita Cloud**, plus a layered test suite that treats LLM quality as a CI gate: a pull request fails if the assistant starts hallucinating, drifting off-topic or following prompt injections.
 
 The knowledge base is fictional on purpose: the model cannot answer from its training data, so every correct answer has to come from retrieval — which makes groundedness measurable.
@@ -23,7 +25,7 @@ flowchart LR
 | Unit | pytest | Retrieval ranking, prompt assembly, API contract, "no context → no LLM call" | No |
 | LLM evals | DeepEval + Claude as judge | Faithfulness (hallucination), answer relevancy, correctness vs. golden answers | Yes |
 | Black-box regression | promptfoo | Known answers, invented facts, prompt injection, system-prompt leakage | Yes |
-| CI gate | GitHub Actions | Runs everything on every PR; evals run when the `ANTHROPIC_API_KEY` secret is set | — |
+| CI gate | GitHub Actions | Unit tests on every push; paid LLM evals on every PR and on manual runs (when the `ANTHROPIC_API_KEY` secret is set) | — |
 
 ## Results
 
