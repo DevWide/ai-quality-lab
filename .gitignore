@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.env
+.deepeval/
+node_modules/
+evals-ts/output/
+*.egg-info/
+evals_python/output/

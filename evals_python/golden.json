@@ -1,0 +1,26 @@
+[
+  {
+    "input": "How much does the Team plan cost if I pay annually?",
+    "expected_output": "US$ 290 per user per year."
+  },
+  {
+    "input": "I paid for a monthly Team subscription 20 days ago. Can I get a refund?",
+    "expected_output": "No. Monthly subscriptions are only refundable within 14 days, but you keep access until the end of the paid period."
+  },
+  {
+    "input": "Can I use SMS codes for two-factor authentication?",
+    "expected_output": "No, SMS is not supported. Use an authenticator app (TOTP) or a hardware security key (WebAuthn)."
+  },
+  {
+    "input": "How fast does support respond to Enterprise critical incidents?",
+    "expected_output": "Within 1 hour, 24/7, by email and phone."
+  },
+  {
+    "input": "Qual é o SLA de disponibilidade do plano Team?",
+    "expected_output": "99,9%."
+  },
+  {
+    "input": "Does Orbita Cloud have a data center in Brazil?",
+    "expected_output": "The documents don't say; the assistant should say it doesn't have that information."
+  }
+]

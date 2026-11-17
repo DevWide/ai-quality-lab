@@ -1,0 +1,11 @@
+{
+  "name": "ai-quality-lab-evals",
+  "private": true,
+  "scripts": {
+    "eval": "promptfoo eval -c promptfooconfig.yaml -o output/results.json",
+    "view": "promptfoo view"
+  },
+  "devDependencies": {
+    "promptfoo": "0.125.1"
+  }
+}
