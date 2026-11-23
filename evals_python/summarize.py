@@ -21,9 +21,10 @@ def main() -> None:
     print(f"{len(runs)} run(s): {', '.join(runs)}\n")
     print(f"{'Metric':<28}{'mean':>6}{'min':>6}{'max':>6}{'pass':>9}")
     for metric, items in by_metric.items():
-        scores = [i["score"] for i in items]
+        scores = [i["score"] for i in items if i["score"] is not None]
         passed = sum(i["passed"] for i in items)
-        print(f"{metric:<28}{mean(scores):>6.2f}{min(scores):>6.2f}{max(scores):>6.2f}{passed:>5}/{len(items)}")
+        stats = f"{mean(scores):>6.2f}{min(scores):>6.2f}{max(scores):>6.2f}" if scores else f"{'n/a':>18}"
+        print(f"{metric:<28}{stats}{passed:>5}/{len(items)}")
 
 
 if __name__ == "__main__":

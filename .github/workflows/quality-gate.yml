@@ -33,17 +33,17 @@ jobs:
         id: secret
         run: echo "present=$([ -n "$ANTHROPIC_API_KEY" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
-      - run: uv sync
+      - run: uv sync --group ragas
         if: steps.secret.outputs.present == 'true'
 
-      - name: DeepEval (faithfulness, relevancy, correctness)
+      - name: DeepEval (faithfulness, relevancy, correctness) + Ragas (context precision/recall)
         if: steps.secret.outputs.present == 'true'
-        run: uv run pytest evals_python -m llm -v
+        run: uv run --group ragas pytest evals_python -m llm -v
 
       - name: Start API
         if: steps.secret.outputs.present == 'true'
         run: |
-          uv run uvicorn app.main:app --port 8000 &
+          uv run --group ragas uvicorn app.main:app --port 8000 &
           for i in $(seq 1 30); do curl -sf localhost:8000/health && break; sleep 1; done
 
       - name: promptfoo (regression + prompt injection)

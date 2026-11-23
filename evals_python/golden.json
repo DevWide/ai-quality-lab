@@ -21,6 +21,7 @@
   },
   {
     "input": "Does Orbita Cloud have a data center in Brazil?",
-    "expected_output": "The documents don't say; the assistant should say it doesn't have that information."
+    "expected_output": "The documents don't say; the assistant should say it doesn't have that information.",
+    "answerable": false
   }
 ]
