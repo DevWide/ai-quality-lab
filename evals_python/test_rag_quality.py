@@ -5,7 +5,6 @@
 
 import json
 import os
-from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -16,6 +15,7 @@ from app import config, tracing
 from app.rag import RagPipeline, claude_generator
 from app.retriever import Retriever, load_chunks
 from evals_python.judge import ClaudeJudge
+from evals_python.scores import record_score
 
 pytestmark = [
     pytest.mark.llm,
@@ -24,24 +24,6 @@ pytestmark = [
 
 GOLDEN = json.loads((Path(__file__).parent / "golden.json").read_text(encoding="utf-8"))
 THRESHOLD = float(os.getenv("EVAL_THRESHOLD", "0.7"))
-SCORES_FILE = Path(__file__).parent / "output" / "scores.jsonl"
-RUN_ID = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def record_score(case_input: str, metric) -> None:
-    """Append one metric score to SCORES_FILE so runs can be aggregated later."""
-    SCORES_FILE.parent.mkdir(exist_ok=True)
-    row = {
-        "run_id": RUN_ID,
-        "case": case_input,
-        "metric": metric.__name__,
-        "score": metric.score,
-        "passed": metric.is_successful(),
-        "reason": metric.reason,
-        "judge": config.JUDGE_MODEL,
-    }
-    with SCORES_FILE.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(row) + "\n")
 
 
 @pytest.fixture(scope="module")
@@ -90,7 +72,14 @@ def test_rag_answer_quality(pipeline, metrics, case):
     failures = []
     for metric in metrics:
         metric.measure(test_case)
-        record_score(case["input"], metric)
+        record_score(
+            case=case["input"],
+            metric=metric.__name__,
+            score=metric.score,
+            passed=metric.is_successful(),
+            reason=metric.reason,
+            framework="deepeval",
+        )
         if not metric.is_successful():
             failures.append(f"{metric.__name__}: {metric.score:.2f} — {metric.reason}")
     assert not failures, "\n".join(failures)

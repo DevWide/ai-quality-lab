@@ -24,6 +24,7 @@ flowchart LR
 |---|---|---|---|
 | Unit | pytest | Retrieval ranking, prompt assembly, API contract, "no context → no LLM call" | No |
 | LLM evals | DeepEval + Claude as judge | Faithfulness (hallucination), answer relevancy, correctness vs. golden answers | Yes |
+| Retrieval evals | Ragas + Claude as judge | Context precision (relevant chunks ranked first), context recall (nothing needed is missing), faithfulness as a second opinion | Yes |
 | Black-box regression | promptfoo | Known answers, invented facts, prompt injection, system-prompt leakage | Yes |
 | CI gate | GitHub Actions | Unit tests on every push; paid LLM evals on every PR and on manual runs (when the `ANTHROPIC_API_KEY` secret is set) | — |
 
@@ -38,6 +39,16 @@ Baseline from 3 full runs of the DeepEval suite (6 golden cases × 3 metrics, ju
 | Correctness (G-Eval) | 0.96 | 0.60 | 17 / 18 | 0.7 |
 | promptfoo tests | — | — | 6 / 6 | 6 / 6 |
 
+Ragas, 3 runs on 2026-11-23 (5 answerable golden cases × 3 metrics; the "data center in Brazil" case has no answer in the docs, so it has nothing to retrieve):
+
+| Metric | Mean | Min | Passing | Threshold |
+|---|---|---|---|---|
+| Context precision | 1.00 | 1.00 | 15 / 15 | 0.7 |
+| Context recall | 1.00 | 1.00 | 15 / 15 | 0.7 |
+| Faithfulness (Ragas) | 1.00 | 1.00 | 15 / 15 | 0.7 |
+
+Retrieval is not the weak spot on this small knowledge base. These numbers are the baseline for the planned vector-search vs. BM25 comparison.
+
 ### What the evals caught
 
 The first real DeepEval run passed only **4 of 6** cases. None of the failures were "the model is bad"; each pointed at a different layer:
@@ -47,6 +58,8 @@ The first real DeepEval run passed only **4 of 6** cases. None of the failures w
 3. **Verbose answers.** Answer relevancy dropped because the assistant padded answers. Tightened the system prompt.
 
 After the fixes: **6 / 6**, and the scores above held across 3 runs.
+
+**Same metric name, different definition.** Ragas' faithfulness first failed 2 of 15 checks while DeepEval's faithfulness passed all of them. Reading the judge's per-statement verdicts showed why: Ragas checks the answer against the retrieved docs only, not the question. On the refund case the bot said "20 days have passed", which the *user* had said, and the judge marked it (and every conclusion built on it) as made up: 0.25 in 3 of 4 re-scorings of the same answer. The fix was in the test: the question is now passed to that metric as context, so facts the user gave count as given. Threshold unchanged; 15 / 15 over the next 3 runs.
 
 **Judge variance is real.** The one failure was the Enterprise support case: the answer was correct and faithful to the docs ("first response within 1 hour for critical incidents, 24/7 by email and phone"), yet G-Eval scored it 0.60 in run 1 and 1.00 in runs 2 and 3. A single green or red run is not a verdict, which is why scores are recorded per run (with the judge's reason) and aggregated instead of trusting one execution.
 
@@ -60,6 +73,7 @@ cp .env.example .env          # add your ANTHROPIC_API_KEY
 
 uv run pytest                 # unit tests — free, no API key
 uv run pytest evals_python -m llm -v   # DeepEval quality gate
+uv run --group ragas pytest evals_python -m llm -v   # DeepEval + Ragas retrieval evals
 uv run python -m evals_python.summarize   # aggregate scores across runs
 
 uv run uvicorn app.main:app --port 8000   # start the API
@@ -100,13 +114,14 @@ PHOENIX_ENABLED=1 uv run uvicorn app.main:app --port 8000
 app/            FastAPI app, BM25 retriever, RAG pipeline, optional tracing
 data/docs/      Fictional knowledge base
 tests/unit/     Deterministic tests (LLM replaced by a fake)
-evals_python/   DeepEval suite, golden dataset, Claude judge
+evals_python/   DeepEval + Ragas suites, golden dataset, Claude judges, score log
 evals-ts/       promptfoo regression + prompt-injection tests
 .github/        CI quality gate
 ```
 
 ## Design decisions
 
+- **Ragas in its own dependency group**: Ragas 0.4 and Arize Phoenix need incompatible `openai` versions, so `ragas` and `tracing` are declared as conflicting uv groups and installed separately (`uv sync --group ragas` or `uv sync --group tracing`).
 - **BM25 instead of embeddings**: deterministic, free and fast in CI. Replacing it with vector search is a planned experiment, measured with the same evals.
 - **LLM injected as a function**: unit tests swap Claude for a fake, so most of the suite runs in milliseconds at no cost.
 - **Different judge model**: answers come from `claude-opus-5-5`, grading from `claude-sonnet-5-5` (both configurable via `RAG_MODEL` / `JUDGE_MODEL`).
@@ -114,7 +129,7 @@ evals-ts/       promptfoo regression + prompt-injection tests
 ## Roadmap
 
 - [x] Record baseline scores and publish them above
-- [ ] Ragas metrics (context precision / recall)
+- [x] Ragas metrics (context precision / recall)
 - [ ] promptfoo red-team plugin (jailbreaks, PII, harmful content)
 - [ ] Vector retrieval vs. BM25 comparison
 - [ ] Playwright E2E for a chat UI

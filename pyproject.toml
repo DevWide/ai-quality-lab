@@ -17,6 +17,9 @@ dev = [
     "httpx>=0.27",
     "deepeval>=3.0",
 ]
+ragas = [
+    "ragas>=0.4",
+]
 tracing = [
     "arize-phoenix>=21.0.0",
     "arize-phoenix-otel>=0.17.3",
@@ -28,3 +31,7 @@ tracing = [
 testpaths = ["tests"]
 pythonpath = ["."]
 markers = ["llm: calls the real Claude API (needs ANTHROPIC_API_KEY, costs money)"]
+
+[tool.uv]
+# ragas pins an openai version that arize-phoenix can't use, so the two groups are installed separately.
+conflicts = [[{ group = "ragas" }, { group = "tracing" }]]
