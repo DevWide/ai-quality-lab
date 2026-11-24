@@ -53,6 +53,32 @@ jobs:
           npm install
           npm run eval
 
+      - name: promptfoo red team (generated + hand-written)
+        if: steps.secret.outputs.present == 'true'
+        working-directory: evals-ts
+        env:
+          PROMPTFOO_DISABLE_REMOTE_GENERATION: "true"
+          PROMPTFOO_DISABLE_TELEMETRY: "1"
+        run: |
+          # Grader refusals can fail a few generated cases (see README), so 95% here.
+          PROMPTFOO_PASS_RATE_THRESHOLD=95 npm run redteam:eval
+          npm run redteam:manual
+
+      - name: Start API with a poisoned document
+        if: steps.secret.outputs.present == 'true'
+        run: |
+          mkdir -p "$RUNNER_TEMP/poisoned-docs"
+          cp data/docs/*.md evals-ts/fixtures/poisoned-docs/*.md "$RUNNER_TEMP/poisoned-docs/"
+          RAG_DOCS_DIR="$RUNNER_TEMP/poisoned-docs" uv run --group ragas uvicorn app.main:app --port 8001 &
+          for i in $(seq 1 30); do curl -sf localhost:8001/health && break; sleep 1; done
+
+      - name: promptfoo red team (indirect injection)
+        if: steps.secret.outputs.present == 'true'
+        working-directory: evals-ts
+        env:
+          PROMPTFOO_DISABLE_TELEMETRY: "1"
+        run: npm run redteam:indirect
+
       - uses: actions/upload-artifact@v4
         if: always() && steps.secret.outputs.present == 'true'
         with:
