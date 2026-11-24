@@ -3,7 +3,11 @@
   "private": true,
   "scripts": {
     "eval": "promptfoo eval -c promptfooconfig.yaml -o output/results.json",
-    "view": "promptfoo view"
+    "view": "promptfoo view",
+    "redteam:generate": "promptfoo redteam generate -c redteam.yaml -o redteam-tests.yaml --force",
+    "redteam:eval": "promptfoo eval -c redteam-tests.yaml -j 4 -o output/redteam-results.json",
+    "redteam:manual": "promptfoo eval -c redteam-manual.yaml -o output/redteam-manual-results.json",
+    "redteam:indirect": "promptfoo eval -c redteam-indirect.yaml -o output/redteam-indirect-results.json"
   },
   "devDependencies": {
     "promptfoo": "0.125.1"
